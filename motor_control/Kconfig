@@ -1,0 +1,17 @@
+# Thao Do
+
+config MOTOR_CONTROL
+    bool "enable motor control module"
+    default n
+
+config MOTOR_CONTROL_PID
+    bool "enable PID control"
+    default n
+
+config MOTOR_CONTROL_ENCODER
+    bool "support to read encoder"
+    default n
+
+config MOTOR_CONTROL_USB_COMMUNICATION
+    bool "support usb communication"
+    default n

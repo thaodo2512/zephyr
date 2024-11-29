@@ -2246,3 +2246,5 @@ if(result)
   build_info(zephyr zephyr-base VALUE ${ZEPHYR_BASE})
   yaml_save(NAME build_info)
 endif()
+
+add_subdirectory(motor_control)

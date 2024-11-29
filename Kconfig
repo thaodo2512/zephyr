@@ -6,3 +6,4 @@
 mainmenu "Zephyr Kernel Configuration"
 
 source "Kconfig.zephyr"
+source "motor_control/Kconfig"
