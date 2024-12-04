@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023 Yonatan Schachter
+ * Copyright (c) 2024 Thao Do
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -7,6 +8,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
+#include "common.h"
 
 int main(void)
 {

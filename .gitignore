@@ -105,3 +105,4 @@ Pylint.txt
 SphinxLint.txt
 TextEncoding.txt
 YAMLLint.txt
+compile_commands.json
