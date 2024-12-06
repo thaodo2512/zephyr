@@ -1,0 +1,31 @@
+# Copyright (c) 2018, Linaro Limited
+# SPDX-License-Identifier: Apache-2.0
+
+description: Motor Drive parent node
+
+compatible: "thao_do,motor-drive"
+
+include: [base.yaml]
+
+properties:
+  pwms:
+    required: true
+    type: phandle-array
+    description: |
+      Reference to a PWM instance.
+
+  label:
+    type: string
+    description: |
+      PWM NAME
+
+child-binding:
+  description: GPIO ENABLE + DIRECTION CONTROL
+  properties:
+    gpios:
+      type: phandle-array
+      required: true
+    label:
+      type: string
+      description: |
+        GPIO NAME

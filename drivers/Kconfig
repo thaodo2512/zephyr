@@ -95,5 +95,6 @@ source "drivers/xen/Kconfig"
 # zephyr-keep-sorted-stop
 
 source "drivers/tee/Kconfig"
+source "drivers/motor_drive/Kconfig"
 
 endmenu

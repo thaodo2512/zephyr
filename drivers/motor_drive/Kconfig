@@ -1,0 +1,23 @@
+# Thao Do
+
+config MOTOR_DRIVE
+    bool "Motor Drive"
+    default n
+    help
+      Motor Drive
+
+if MOTOR_DRIVE
+
+config MOTOR_DRIVE_L298
+    bool "Motor Drive L298"
+    default n
+    help
+      Motor Drive L298
+
+config MOTOR_DRIVE_DRIVER_INIT_PRIORITY
+    int "Driver Initialization Priority"
+    default KERNEL_INIT_PRIORITY_DEVICE
+    help
+      Driver Initialization Priority
+
+endif
