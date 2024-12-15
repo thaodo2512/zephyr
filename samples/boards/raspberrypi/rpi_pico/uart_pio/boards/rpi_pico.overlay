@@ -43,3 +43,37 @@
 		status = "okay";
 	};
 };
+
+&pwm {
+	status = "okay";
+	divider-frac-4 = <15>;
+	divider-int-4 = <255>;
+};
+
+&adc {
+	status = "disabled";
+};
+
+
+// 25kHz PWM frequency
+// 40000 ns = 0x9c40
+// pwm channel = 9
+// pwm flags = 0
+/ {
+	motor_drive0: motor_drive {
+		compatible = "thao_do,motor-drive";
+		status = "okay";
+		pwms = <&pwm 0x1 PWM_USEC(40) 0x0>;
+		label = "MOTOR_DRIVE_CHANNEL_0";
+
+		gpio_ctrl0: gpio_ctrl0 {
+			gpios = <&gpio0 19 GPIO_ACTIVE_HIGH>;
+			label = "GPIO 19";
+		};
+
+		gpio_ctrl1: gpio_ctrl1 {
+			gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+			label = "GPIO 20";
+		};
+	};
+};
