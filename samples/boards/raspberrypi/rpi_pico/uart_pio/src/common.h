@@ -38,6 +38,12 @@ struct common_message {
     uint8_t payload[COMMUNICATION_MAX_SIZE - sizeof(struct common_header)];
 } __packed;
 
+/**
+ * @brief Init communication thread
+ *
+ * @return int 0 if success, otherwise failed
+ */
+int communication_init(void);
 
 float pid_cal(float kp, float ki, float kd);
 

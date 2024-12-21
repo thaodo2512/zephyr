@@ -1,48 +1,63 @@
 &pinctrl {
-	pio1_uart0_default: pio1_uart0_default {
-		rx_pins {
-			pinmux = <PIO1_P1>;
-			input-enable;
-			bias-pull-up;
+	// pio1_uart0_default: pio1_uart0_default {
+	// 	rx_pins {
+	// 		pinmux = <PIO1_P1>;
+	// 		input-enable;
+	// 		bias-pull-up;
+	// 	};
+	// 	tx_pins {
+	// 		pinmux = <PIO1_P0>;
+	// 	};
+	// };
+
+	// pio1_uart1_default: pio1_uart1_default {
+	// 	rx_pins {
+	// 		pinmux = <PIO1_P5>;
+	// 		input-enable;
+	// 		bias-pull-up;
+	// 	};
+	// 	tx_pins {
+	// 		pinmux = <PIO1_P4>;
+	// 	};
+	// };
+
+	uart1_default: uart1_default {
+		group1 {
+			pinmux = <UART1_TX_P4>;
 		};
-		tx_pins {
-			pinmux = <PIO1_P0>;
+		group2 {
+			pinmux = <UART1_RX_P5>;
+			input-enable;
 		};
 	};
 
-	pio1_uart1_default: pio1_uart1_default {
-		rx_pins {
-			pinmux = <PIO1_P2>;
-			input-enable;
-			bias-pull-up;
-		};
-		tx_pins {
-			pinmux = <PIO1_P3>;
-		};
-	};
 };
 
-&pio1 {
- 	status = "okay";
 
-	pio1_uart0: uart0 {
-		pinctrl-0 = <&pio1_uart0_default>;
-		pinctrl-names = "default";
 
-		compatible = "raspberrypi,pico-uart-pio";
-		current-speed = <115200>;
-		status = "okay";
-	};
 
-	pio1_uart1: uart1 {
-		pinctrl-0 = <&pio1_uart1_default>;
-		pinctrl-names = "default";
 
-		compatible = "raspberrypi,pico-uart-pio";
-		current-speed = <115200>;
-		status = "okay";
-	};
-};
+// &pio1 {
+//  	status = "okay";
+
+// 	pio1_uart0: uart0 {
+// 		pinctrl-0 = <&pio1_uart0_default>;
+// 		pinctrl-names = "default";
+
+// 		compatible = "raspberrypi,pico-uart-pio";
+// 		current-speed = <115200>;
+// 		status = "disabled";
+// 	};
+
+// 	pio1_uart1: uart1 {
+// 		pinctrl-0 = <&pio1_uart1_default>;
+// 		pinctrl-names = "default";
+
+// 		compatible = "raspberrypi,pico-uart-pio";
+// 		current-speed = <115200>;
+// 		status = "okay";
+// 	};
+// };
 
 &pwm {
 	status = "okay";
@@ -52,6 +67,17 @@
 
 &adc {
 	status = "disabled";
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = < 115200 >;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-names = "default";
+};
+
+&usbd {
+	status = "okay";
 };
 
 
@@ -76,4 +102,12 @@
 			label = "GPIO 20";
 		};
 	};
+
+	hid_dev_0: hid_dev_0 {
+		compatible = "zephyr,hid-device";
+		interface-name = "HID0";
+		in-report-size = <256>;
+		in-polling-period-us = <1000>;
+	};
 };
+
