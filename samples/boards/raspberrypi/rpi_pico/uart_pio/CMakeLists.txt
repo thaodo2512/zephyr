@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(uart_pio)
+project(motor_control)
 
 # Get the current build time
 string(TIMESTAMP BUILD_TIME "%Y-%m-%d %H:%M:%S")
@@ -18,6 +18,17 @@ execute_process(
 # Pass the build time and commit hash as preprocessor definitions
 add_definitions(-DBUILD_TIME="${BUILD_TIME}")
 add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+
+# include external lib
+set(PICO_SDK_PATH $ENV{ZEPHYR_BASE}/..$ENV{ZEPHYR_EXTRA_MODULES}/modules/hal/rpi_pico)
+message(STATUS "PICO_SDK_PATH: ${PICO_SDK_PATH}")
+
+# initialize pico-sdk from submodule
+# note: this must happen before project()
+include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
+
+# initialize the Raspberry Pi Pico SDK
+pico_sdk_init()
 
 include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
 target_sources(app PRIVATE src/usb.c)
