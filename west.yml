@@ -23,6 +23,8 @@ manifest:
       url-base: https://github.com/zephyrproject-rtos
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: thao_encoder
+      url-base: https://github.com/thaodo2512
 
   group-filter: [-babblesim, -optional]
 
@@ -342,6 +344,10 @@ manifest:
     - name: zcbor
       revision: 47f34dd7f5284e8750b5a715dee7f77c6c5bdc3f
       path: modules/lib/zcbor
+    - name: pi-pico-pio-quadrature-encoder
+      remote: thao_encoder
+      path: modules/lib/pi-pico-pio-quadrature-encoder
+      revision: abb28f9b3774277afc1467b63ce2211e2c727a85
 
   self:
     path: zephyr
