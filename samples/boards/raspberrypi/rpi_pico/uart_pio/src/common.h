@@ -13,6 +13,8 @@
 #define COMMUNICATION_MAX_SIZE 32
 #define COMMUNICATION_VERSION 1
 
+#define MOTOR_SAMPLING_TIME_MS 1
+
 enum communication_cmd {
     COMMUNICATION_GET_SPEED = 0,
     COMMUNICATION_SET_SPEED = 1,
@@ -45,10 +47,13 @@ struct common_message {
  */
 int communication_init(void);
 
+/** calulcate pwm output */
 float pid_cal(float kp, float ki, float kd);
 
 void pid_update_control_signal(float new_control_signal);
 
 void pid_update_error(float new_error);
+
+float *get_set_point(void);
 
 #endif

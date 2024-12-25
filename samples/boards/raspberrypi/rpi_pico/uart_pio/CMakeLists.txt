@@ -25,10 +25,10 @@ message(STATUS "PICO_SDK_PATH: ${PICO_SDK_PATH}")
 
 # initialize pico-sdk from submodule
 # note: this must happen before project()
-include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
+# include(${PICO_SDK_PATH}/pico_sdk_init.cmake)
 
 # initialize the Raspberry Pi Pico SDK
-pico_sdk_init()
+# pico_sdk_init()
 
 include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
 target_sources(app PRIVATE src/usb.c)

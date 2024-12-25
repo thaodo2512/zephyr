@@ -11,7 +11,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(motor_driver);
+LOG_MODULE_REGISTER(motor_driver, LOG_LEVEL_DBG);
 
 #define DT_DRV_COMPAT thao_do_motor_drive
 
@@ -57,9 +57,14 @@ static int motor_get_inf(const struct device *dev, uint32_t motor, const struct 
 	return 0;
 }
 
-static int motor_set_speed(const struct device *dev, uint32_t motor, uint8_t value)
+static int motor_set_voltage(const struct device *dev, uint32_t motor, uint8_t value)
 {
-	return 0;
+	// convert value (0 volt - 12 volt) to percent (0 - 100)
+	float percent = (value / 12.0f) * 100.0f;
+
+	LOG_DBG("set out voltage = %u %%", (uint32_t)percent);
+
+	return motor_pwm_set_output(dev, motor, (uint32_t)percent);
 }
 
 static int motor_drive_on(const struct device *dev, uint32_t motor, uint8_t dir)
@@ -83,15 +88,25 @@ static int motor_drive_on(const struct device *dev, uint32_t motor, uint8_t dir)
 	if (dir == MOTOR_DIRVE_DIRECTION_FORWARD) {
 		rc = gpio_pin_set_dt(&cfg->pin_io_0, 1);
 		if (rc) {
+			LOG_DBG("cannot set pin 0 to 1");
 			return rc;
 		}
 		rc = gpio_pin_set_dt(&cfg->pin_io_1, 0);
+		if (rc) {
+			LOG_DBG("cannot set pin 1 to 0");
+			return rc;
+		}
 	} else {
 		rc = gpio_pin_set_dt(&cfg->pin_io_0, 0);
 		if (rc) {
+			LOG_DBG("cannot set pin 0 to 0");
 			return rc;
 		}
 		rc = gpio_pin_set_dt(&cfg->pin_io_1, 1);
+		if (rc) {
+			LOG_DBG("cannot set pin 1 to 0");
+			return rc;
+		}
 	}
 
 	return 0;
@@ -115,24 +130,26 @@ static int motor_drive_off(const struct device *dev, uint32_t motor)
 		return -EINVAL;
 	}
 
-	rc = gpio_pin_set_dt(&cfg->pin_io_0, 1);
 	rc = gpio_pin_set_dt(&cfg->pin_io_0, 0);
 	if (rc) {
+		LOG_ERR("%s: cannot set pin 0 to 0", __func__);
 		return rc;
 	}
-	rc = gpio_pin_set_dt(&cfg->pin_io_0, 1);
-	rc = gpio_pin_set_dt(&cfg->pin_io_0, 0);
+	rc = gpio_pin_set_dt(&cfg->pin_io_1, 0);
 	if (rc) {
+		LOG_ERR("%s: cannot set pin 1 to 0", __func__);
 		return rc;
 	}
 
-	return rc;
+	return 0;
 }
 
 static int motor_pwm_init(const struct device *dev)
 {
 	struct motor_drive_config *config = (struct motor_drive_config *)dev->config;
 	int rc;
+
+	LOG_INF("init");
 
 	if (!config->num_motors) {
 		LOG_ERR("%s: no motors found (DT child nodes missing)", dev->name);
@@ -144,12 +161,14 @@ static int motor_pwm_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	rc = gpio_pin_configure_dt(&config->pin_io_0, GPIO_OUTPUT_INACTIVE);
+	rc = gpio_pin_configure_dt(&config->pin_io_0, GPIO_OUTPUT_LOW);
 	if (rc) {
+		LOG_ERR("%s: unable to configure pin 0", dev->name);
 		return rc;
 	}
-	rc = gpio_pin_configure_dt(&config->pin_io_1, GPIO_OUTPUT_INACTIVE);
+	rc = gpio_pin_configure_dt(&config->pin_io_1, GPIO_OUTPUT_LOW);
 	if (rc) {
+		LOG_ERR("%s: unable to configure pin 1", dev->name);
 		return rc;
 	}
 
@@ -159,7 +178,7 @@ static int motor_pwm_init(const struct device *dev)
 static struct motor_driver_api motor_driver_api = {
 	.on = motor_drive_on,
 	.off = motor_drive_off,
-	.set_speed = motor_set_speed,
+	.set_voltage = motor_set_voltage,
 	.get_info = motor_get_inf,
 };
 
@@ -190,7 +209,7 @@ static struct motor_driver_api motor_driver_api = {
 		.num_motors = 1,                                                                   \
 		.motor = MOTOR_DRIVE_GET_PWM_DEVICE(inst),                                         \
 		.pin_io_0 = MOTOR_DRIVE_GET_GPIO(inst, gpio_ctrl0),                                \
-		.pin_io_0 = MOTOR_DRIVE_GET_GPIO(inst, gpio_ctrl1),                                \
+		.pin_io_1 = MOTOR_DRIVE_GET_GPIO(inst, gpio_ctrl1),                                \
 	};                                                                                         \
 	DEVICE_DT_INST_DEFINE(inst, motor_pwm_init, NULL, NULL, &motor_drive_config##inst,         \
 			      POST_KERNEL, CONFIG_MOTOR_DRIVE_DRIVER_INIT_PRIORITY, &motor_driver_api);

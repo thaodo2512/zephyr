@@ -15,6 +15,7 @@
 #include <zephyr/usb/class/usbd_hid.h>
 #include <zephyr/usb/usbd.h>
 #include <string.h>
+#include <zephyr/sys/crc.h>
 
 #include "common.h"
 
@@ -125,6 +126,7 @@ static void uart_isr_cb(const struct device *uart_dev, void *user_data)
 
 		if (atomic_get(&get_send_msg()->done) != 1) {
 			// nothing to be done
+			uart_irq_tx_disable(uart_dev);
 			break;
 		}
 
@@ -175,12 +177,64 @@ static int setup_uart(const struct device *uart, void *user_data)
 	return 0;
 }
 
+static int message_handler(struct common_message *msg, uint8_t len)
+{
+	struct common_message *recv_msg = (struct common_message *)msg;
+
+	if (recv_msg->header.ver != COMMUNICATION_VERSION) {
+		LOG_ERR("invalid version");
+		return -EINVAL;
+	}
+
+	// check crc
+	// uint8_t crc = crc8_ccitt(0, msg, len);
+	// if (crc != recv_msg->header.crc) {
+	// 	LOG_ERR("invalid crc");
+	// 	return -EINVAL;
+	// }
+
+	switch (recv_msg->header.cmd) {
+	case COMMUNICATION_GET_SPEED:
+		LOG_INF("get speed");
+		break;
+	case COMMUNICATION_SET_SPEED:
+		LOG_INF("set speed");
+		{
+			float speed = (float)(recv_msg->payload[0]  | (recv_msg->payload[1] << 8) | (recv_msg->payload[2] << 16) 
+			| (recv_msg->payload[3] << 24));
+			*get_set_point() = speed;
+		}
+		break;
+	case COMMNUICATION_GET_POSITION:
+		LOG_INF("get position");
+		break;
+	case COMMUNICATION_SET_POSITION:
+		LOG_INF("set position");
+		break;
+	case COMMUNICATION_SET_P:
+		LOG_INF("set P");
+		break;
+	case COMMUNICATION_SET_I:
+		LOG_INF("set I");
+		break;
+	case COMMUNICATION_SET_D:
+		LOG_INF("set D");
+		break;
+	default:
+		LOG_ERR("invalid command");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static void uart_thread(void *arg1, void *arg2, void *unused2)
 {
 	ARG_UNUSED(unused2);
 
 	struct communicate_context *thread_ctx = (struct communicate_context *)arg1;
 	const struct device *uart = (const struct device *)arg2;
+	int rc;
 
 	while (true) {
 		k_sem_take(&thread_ctx->msg_in, K_FOREVER);
@@ -190,8 +244,11 @@ static void uart_thread(void *arg1, void *arg2, void *unused2)
 		// do something here
 		LOG_INF("new msg in");
 		LOG_HEXDUMP_INF(get_recv_msg()->msg, 32, "uart recv msg");
-
-		uart_irq_tx_enable(uart);
+		rc = message_handler(uart_recv_msg.msg, uart_recv_msg.msg->header.len);
+		if (rc > 0) {
+			atomic_set(&get_send_msg()->done, 1);
+			uart_irq_tx_enable(uart);
+		}
 
 		// release recv message buffer
 		memset(get_recv_msg()->msg, 0, 32);

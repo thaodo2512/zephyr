@@ -8,12 +8,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-
-#include <stdio.h>
-#include "pico/stdlib.h"
-// #include "hardware/pio.h"
-// #include "quadrature.pio.h"
-
 #include "common.h"
 
 LOG_MODULE_REGISTER(encoder, LOG_LEVEL_INF);

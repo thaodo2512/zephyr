@@ -53,19 +53,19 @@ typedef int (*motor_drive_off_t)(const struct device *dev, uint32_t motor);
 typedef int (*motor_drive_get_info_t)(const struct device *dev, uint32_t motor,
 				      const struct motor_info **info);
 
-/** @brief Set the speed of the motor
+/** @brief Set the output voltage for the motor
  *
  * @param dev Pointer to the device structure for the driver instance.
  * @param motor The motor index
  * @param value The speed value
  * @retval int 0 if successful, negative errno code on failure.
  */
-typedef int (*motor_drive_set_speed_t)(const struct device *dev, uint32_t motor, uint8_t value);
+typedef int (*motor_drive_set_output_voltage_t)(const struct device *dev, uint32_t motor, uint8_t value);
 
 struct motor_driver_api {
 	motor_drive_on_t on;
 	motor_drive_off_t off;
-	motor_drive_set_speed_t set_speed;
+	motor_drive_set_output_voltage_t set_voltage;
 	motor_drive_get_info_t get_info;
 };
 
