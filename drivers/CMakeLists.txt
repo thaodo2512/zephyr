@@ -94,4 +94,5 @@ add_subdirectory_ifdef(CONFIG_WATCHDOG watchdog)
 add_subdirectory_ifdef(CONFIG_WIFI wifi)
 add_subdirectory_ifdef(CONFIG_XEN xen)
 add_subdirectory_ifdef(CONFIG_MOTOR_DRIVE motor_drive)
+add_subdirectory_ifdef(CONFIG_RPI_PICO_ENCODER motor_drive_encoder)
 # zephyr-keep-sorted-stop

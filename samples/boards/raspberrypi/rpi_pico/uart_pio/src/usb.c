@@ -36,7 +36,10 @@ struct uart_message {
 };
 
 static const struct device *uart1 = DEVICE_DT_GET(DT_NODELABEL(uart1));
+static const struct device *usb_hid = DEVICE_DT_GET_ONE(zephyr_hid_device);
+// static const uint8_t hid_report_desc[] = HID_LOGICAL_MIN32();
 static struct communicate_context uart_ctx;
+static struct communicate_context usb_ctx;
 static struct common_message recevice_msg = {0};
 static struct uart_message uart_recv_msg = {
 	.msg = &recevice_msg,
@@ -156,30 +159,10 @@ static void uart_isr_cb(const struct device *uart_dev, void *user_data)
 	return;
 }
 
-static int setup_uart(const struct device *uart, void *user_data)
-{
-	char data;
-
-	if (!device_is_ready(uart)) {
-		return -EIO;
-	}
-
-	uart_irq_rx_disable(uart);
-	uart_irq_tx_disable(uart);
-	// flush data
-	while (uart_fifo_read(uart, &data, sizeof(data)) > 0) {
-		// do nothing
-		continue;
-	}
-	uart_irq_callback_user_data_set(uart, uart_isr_cb, user_data);
-	uart_irq_rx_enable(uart);
-
-	return 0;
-}
-
 static int message_handler(struct common_message *msg, uint8_t len)
 {
 	struct common_message *recv_msg = (struct common_message *)msg;
+	int rc;
 
 	if (recv_msg->header.ver != COMMUNICATION_VERSION) {
 		LOG_ERR("invalid version");
@@ -196,6 +179,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	switch (recv_msg->header.cmd) {
 	case COMMUNICATION_GET_SPEED:
 		LOG_INF("get speed");
+
 		break;
 	case COMMUNICATION_SET_SPEED:
 		LOG_INF("set speed");
@@ -228,9 +212,45 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	return 0;
 }
 
-static void uart_thread(void *arg1, void *arg2, void *unused2)
+static int setup_uart(const struct device *uart, void *user_data)
 {
-	ARG_UNUSED(unused2);
+	char data;
+
+	if (!device_is_ready(uart)) {
+		return -EIO;
+	}
+
+	uart_irq_rx_disable(uart);
+	uart_irq_tx_disable(uart);
+	// flush data
+	while (uart_fifo_read(uart, &data, sizeof(data)) > 0) {
+		// do nothing
+		continue;
+	}
+	uart_irq_callback_user_data_set(uart, uart_isr_cb, user_data);
+	uart_irq_rx_enable(uart);
+
+	return 0;
+}
+
+static int setup_usb_hid(const struct device *usb, void *user_data)
+{
+	int rc;
+
+	if (!device_is_ready(usb)) {
+		LOG_ERR("USB HID device is not ready");
+		return -EIO;
+	}
+
+	rc = hid_device_register(usb, NULL, 0, NULL);
+
+
+	return 0;
+}
+
+static void uart_thread(void *arg1, void *arg2, void *arg3)
+{
+	ARG_UNUSED(arg3);
 
 	struct communicate_context *thread_ctx = (struct communicate_context *)arg1;
 	const struct device *uart = (const struct device *)arg2;
@@ -259,6 +279,15 @@ static void uart_thread(void *arg1, void *arg2, void *unused2)
 	return;
 }
 
+static void usb_hid_thread(void *arg1, void *arg2, void *arg3)
+{
+	ARG_UNUSED(arg1);
+	ARG_UNUSED(arg2);
+	ARG_UNUSED(arg3);
+
+	return;
+}
+
 int communication_init(void)
 {
 	LOG_INF("init communicate thread");
@@ -271,5 +300,12 @@ int communication_init(void)
 			K_KERNEL_STACK_SIZEOF(uart_ctx.stack), uart_thread, &uart_ctx,
 			(void *)uart1, NULL, K_PRIO_COOP(2), 0, K_NO_WAIT);
 	k_thread_name_set(&uart_ctx.communicate_thread, "uart_thread");
+
+
+	k_thread_create(&usb_ctx.communicate_thread, uart_ctx.stack,
+	   K_KERNEL_STACK_SIZEOF(usb_ctx.stack), usb_hid_thread,
+	   &usb_ctx, NULL, NULL, K_PRIO_COOP(2), 0, K_NO_WAIT);
+	k_thread_name_set(&usb_ctx.communicate_thread, "usb_hid_thread");
+
 	return 0;
 }

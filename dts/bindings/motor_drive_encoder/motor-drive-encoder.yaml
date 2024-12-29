@@ -1,0 +1,33 @@
+# Copyright (c) 2024 Thao Do
+# SPDX-License-Identifier: Apache-2.0
+
+description: Motor Drive parent node
+
+compatible: "thao_do,pico-encoder"
+
+include: [base.yaml, pinctrl-device.yaml]
+
+properties:
+  pulses-per-revolution:
+    required: true
+    type: int
+    description: |
+      Resolution of the encoder.
+
+  motor-gear-ratio:
+    required: true
+    type: int
+    description: |
+      Gear ratio of the motor.
+
+  motor-default-speed:
+    required: true
+    type: int
+    description: |
+      Default speed of the motor when it works in default voltage.
+
+  sampling-time:
+    required: true
+    type: int
+    description: |
+      Sampling time of the encoder in us.

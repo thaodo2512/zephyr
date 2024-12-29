@@ -8,6 +8,7 @@
 #include <zephyr/kernel.h>
 #include <stdint.h>
 #include <zephyr/drivers/motor_drive.h>
+#include <zephyr/drivers/motor_drive_encoder.h>
 #include "common.h"
 
 #include <zephyr/logging/log.h>
@@ -39,6 +40,11 @@ float *get_set_point(void)
 	return &set_point;
 }
 
+const struct device *get_encoder_device(void)
+{
+	return DEVICE_DT_GET(DT_NODELABEL(motor_drive_encoder0));
+}
+
 
 int main(void)
 {
@@ -48,14 +54,22 @@ int main(void)
 
 	int rc;
 	const struct device *motor_drive = DEVICE_DT_GET(DT_NODELABEL(motor_drive0));
+	const struct device *encoder = DEVICE_DT_GET(DT_NODELABEL(motor_drive_encoder0));
 	struct motor_driver_api *motor_driver_api;
+	struct motor_drive_encoder_api *encoder_api;
 
 	if (!device_is_ready(motor_drive)) {
 		LOG_ERR("Motor drive device %s is not ready", motor_drive->name);
 		return -ENODEV;
 	}
 
+	if (!device_is_ready(encoder)) {
+		LOG_ERR("Encoder device %s is not ready", encoder->name);
+		return -ENODEV;
+	}
+
 	motor_driver_api = (struct motor_driver_api *)motor_drive->api;
+	encoder_api = (struct motor_drive_encoder_api *)encoder->api;
 
 	rc = communication_init();
 	if (rc) {
@@ -74,13 +88,38 @@ int main(void)
 	}
 
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
+	float speed = 0.0f;
+	int position = 0;
+	int cnt = 0;
+	int pre_cnt = 0;
 
 	while (1) {
 		k_sem_take(&pid_sem, K_FOREVER);
-		LOG_INF("pid run with set point %.4f", (double)*get_set_point());
-		// printf("pid run with set point %.4f\n", (double)*get_set_point());
+		rc = encoder_api->get_speed(encoder, &speed);
+		if (rc) {
+			LOG_ERR("failed to get encoder count - rc = %d", rc);
+		} else {
+			LOG_INF("current speed = %f", (double)speed);
+		}
 
-		rc = motor_driver_api->set_voltage(motor_drive, 0, 5);
+		rc = encoder_api->get_position(encoder, &position);
+		if (!rc) {
+			LOG_INF("current position = %d", position);
+		}
+
+		rc = encoder_api->get_count(encoder, &cnt);
+		if (!rc) {
+			LOG_INF("current count = %d, delta = %d", cnt, cnt -pre_cnt);
+			pre_cnt = cnt;
+		}
+
+		rc = motor_driver_api->on(motor_drive, 0, MOTOR_DIRVE_DIRECTION_FORWARD);
+		if (rc) {
+			LOG_ERR("failed to turn on motor - rc = %d", rc);
+			continue;
+		}
+
+		rc = motor_driver_api->set_voltage(motor_drive, 0, 10);
 		if (rc) {
 			LOG_ERR("failed to set speed - rc = %d", rc);
 		}

@@ -56,4 +56,6 @@ void pid_update_error(float new_error);
 
 float *get_set_point(void);
 
+const struct device *get_encoder_device(void);
+
 #endif

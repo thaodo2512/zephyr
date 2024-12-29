@@ -1,0 +1,8 @@
+# Copyright (c) 2024 Thao Do <thaodo2512@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+config RPI_PICO_ENCODER
+    bool "Raspberry Pi Pico Encoder driver"
+    default y
+    depends on DT_HAS_THAO_DO_PICO_ENCODER_ENABLED
+    select PICOSDK_USE_PIO

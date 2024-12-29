@@ -96,5 +96,6 @@ source "drivers/xen/Kconfig"
 
 source "drivers/tee/Kconfig"
 source "drivers/motor_drive/Kconfig"
+source "drivers/motor_drive_encoder/Kconfig"
 
 endmenu
