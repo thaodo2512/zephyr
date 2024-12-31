@@ -88,30 +88,30 @@ int main(void)
 	}
 
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
-	float speed = 0.0f;
-	int position = 0;
-	int cnt = 0;
-	int pre_cnt = 0;
+	// float speed = 0.0f;
+	// int position = 0;
+	// int cnt = 0;
+	// int pre_cnt = 0;
 
 	while (1) {
 		k_sem_take(&pid_sem, K_FOREVER);
-		rc = encoder_api->get_speed(encoder, &speed);
-		if (rc) {
-			LOG_ERR("failed to get encoder count - rc = %d", rc);
-		} else {
-			LOG_INF("current speed = %f", (double)speed);
-		}
+		// rc = encoder_api->get_speed(encoder, &speed);
+		// if (rc) {
+		// 	LOG_ERR("failed to get encoder count - rc = %d", rc);
+		// } else {
+		// 	LOG_INF("current speed = %f", (double)speed);
+		// }
 
-		rc = encoder_api->get_position(encoder, &position);
-		if (!rc) {
-			LOG_INF("current position = %d", position);
-		}
+		// rc = encoder_api->get_position(encoder, &position);
+		// if (!rc) {
+		// 	LOG_INF("current position = %d", position);
+		// }
 
-		rc = encoder_api->get_count(encoder, &cnt);
-		if (!rc) {
-			LOG_INF("current count = %d, delta = %d", cnt, cnt -pre_cnt);
-			pre_cnt = cnt;
-		}
+		// rc = encoder_api->get_count(encoder, &cnt);
+		// if (!rc) {
+		// 	LOG_INF("current count = %d, delta = %d", cnt, cnt -pre_cnt);
+		// 	pre_cnt = cnt;
+		// }
 
 		rc = motor_driver_api->on(motor_drive, 0, MOTOR_DIRVE_DIRECTION_FORWARD);
 		if (rc) {

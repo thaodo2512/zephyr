@@ -11,7 +11,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(motor_driver, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(motor_driver);
 
 #define DT_DRV_COMPAT thao_do_motor_drive
 
