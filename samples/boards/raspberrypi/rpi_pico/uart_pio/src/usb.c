@@ -196,6 +196,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	struct common_message *recv_msg = (struct common_message *)msg;
 	int rc = -ENODATA;
 	float speed;
+	float position;
 
 	if (recv_msg->header.ver != COMMUNICATION_VERSION) {
 		LOG_ERR("invalid version");
@@ -228,7 +229,14 @@ static int message_handler(struct common_message *msg, uint8_t len)
 		rc = 0;
 		break;
 	case COMMNUICATION_GET_POSITION:
+		((struct motor_drive_encoder_api *)get_encoder_device()->api)
+			->get_position(get_encoder_device(), &position);
+		COMMUNICATION_SET_RESPONSE(get_send_msg()->msg, COMMNUICATION_GET_POSITION,
+					   sizeof(float));
+		memcpy(get_send_msg()->msg->payload, &position, sizeof(float));
+		get_send_msg()->index = get_send_msg()->msg->header.len;
 		LOG_DBG("get position");
+		rc = 0;
 		break;
 	case COMMUNICATION_SET_POSITION:
 		LOG_DBG("set position");
