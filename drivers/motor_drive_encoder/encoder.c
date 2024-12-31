@@ -37,7 +37,7 @@ struct motor_drive_encoder_data {
 	struct k_timer timer;
 	uint32_t sampling_time;
 	float speed;    // rpm
-	int position; // degree
+	float position; // degree
 };
 
 #define quadrature_encoder_wrap_target 15
@@ -169,7 +169,7 @@ static int encoder_get_count(const struct device *dev, int32_t *count)
 	return 0;
 }
 
-static int encoder_get_position(const struct device *dev, int32_t *position)
+static int encoder_get_position(const struct device *dev, float *position)
 {
 	struct motor_drive_encoder_data *data;
 
@@ -244,7 +244,7 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 	asm volatile ("" ::: "memory");
 
 	// calculate position
-	data->position += (int)((cnt - pre_cnt) * 360.0f);
+	data->position += ((cnt - pre_cnt) * 360.0f);
 	asm volatile ("" ::: "memory");
 
 	pre_cnt = cnt;

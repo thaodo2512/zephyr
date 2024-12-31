@@ -32,7 +32,7 @@ typedef int (*motor_drive_encoder_reset_count)(const struct device *dev);
  * @param position The buffer cointains the position value
  * @retval int 0 if successful, negative errno code on failure.
  */
-typedef int (*motor_drive_encoder_get_position)(const struct device *dev, int32_t *position);
+typedef int (*motor_drive_encoder_get_position)(const struct device *dev, float *position);
 
 /**
  * @brief Get the speed of mtor in RPM
