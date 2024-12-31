@@ -60,7 +60,7 @@ typedef int (*motor_drive_get_info_t)(const struct device *dev, uint32_t motor,
  * @param value The speed value
  * @retval int 0 if successful, negative errno code on failure.
  */
-typedef int (*motor_drive_set_output_voltage_t)(const struct device *dev, uint32_t motor, uint8_t value);
+typedef int (*motor_drive_set_output_voltage_t)(const struct device *dev, uint32_t motor, float value);
 
 struct motor_driver_api {
 	motor_drive_on_t on;

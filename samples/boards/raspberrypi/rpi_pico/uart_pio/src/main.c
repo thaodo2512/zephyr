@@ -119,7 +119,7 @@ int main(void)
 			continue;
 		}
 
-		rc = motor_driver_api->set_voltage(motor_drive, 0, 10);
+		rc = motor_driver_api->set_voltage(motor_drive, 0, 10.0f);
 		if (rc) {
 			LOG_ERR("failed to set speed - rc = %d", rc);
 		}

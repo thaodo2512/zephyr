@@ -57,7 +57,7 @@ static int motor_get_inf(const struct device *dev, uint32_t motor, const struct 
 	return 0;
 }
 
-static int motor_set_voltage(const struct device *dev, uint32_t motor, uint8_t value)
+static int motor_set_voltage(const struct device *dev, uint32_t motor, float value)
 {
 	// convert value (0 volt - 12 volt) to percent (0 - 100)
 	float percent = (value / 12.0f) * 100.0f;
