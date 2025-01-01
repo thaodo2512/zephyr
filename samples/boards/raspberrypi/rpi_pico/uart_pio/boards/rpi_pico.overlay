@@ -1,10 +1,10 @@
 &pinctrl {
 	uart1_default: uart1_default {
 		group1 {
-			pinmux = <UART1_TX_P4>;
+			pinmux = <UART1_TX_P8>;
 		};
 		group2 {
-			pinmux = <UART1_RX_P5>;
+			pinmux = <UART1_RX_P9>;
 			input-enable;
 		};
 	};
@@ -93,11 +93,5 @@
 		sampling-time = <10>; // ms
 	};
 
-	// hid_dev_0: hid_dev_0 {
-	// 	compatible = "zephyr,hid-device";
-	// 	interface-name = "HID0";
-	// 	in-report-size = <256>;
-	// 	in-polling-period-us = <1000>;
-	// };
 };
 
