@@ -24,6 +24,7 @@ enum communication_cmd {
     COMMUNICATION_SET_I = 5,
     COMMUNICATION_SET_D = 6,
     COMMUNICATION_GET_SPEED_POSITION = 7,
+    COMMUNICATION_SET_PI = 8,
 };
 
 struct common_header {
@@ -68,5 +69,7 @@ float *get_set_point(void);
 pi_controller *get_pi_controller(void);
 
 const struct device *get_encoder_device(void);
+
+bool *is_speed_control(void);
 
 #endif

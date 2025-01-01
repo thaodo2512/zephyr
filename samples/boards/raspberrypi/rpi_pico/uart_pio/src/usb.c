@@ -227,6 +227,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 		->get_speed(get_encoder_device(), &speed);
 	((struct motor_drive_encoder_api *)get_encoder_device()->api)
 		->get_position(get_encoder_device(), &position);
+	// printk("command %d\n", recv_msg->header.cmd);
 
 	switch (recv_msg->header.cmd) {
 	case COMMUNICATION_GET_SPEED:
@@ -240,6 +241,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	case COMMUNICATION_SET_SPEED:
 		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, speed);
 		*get_set_point() = speed;
+		*is_speed_control() = true;
 		LOG_INF("set speed %f", (double)speed);
 		break;
 	case COMMNUICATION_GET_POSITION:
@@ -253,6 +255,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	case COMMUNICATION_SET_POSITION:
 		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, position);
 		*get_set_point() = position;
+		*is_speed_control() = false;
 		LOG_INF("set position %f", (double)position);
 		break;
 	case COMMUNICATION_SET_P:
@@ -275,8 +278,15 @@ static int message_handler(struct common_message *msg, uint8_t len)
 					   sizeof(float) * 2);
 		memcpy(get_send_msg()->msg->payload, &speed, sizeof(speed));
 		memcpy(get_send_msg()->msg->payload + sizeof(speed), &position, sizeof(position));
-		get_send_msg()->index = 32; // force to send 32 bytes
+		get_send_msg()->index = get_send_msg()->msg->header.len;
 		rc = 0;
+		break;
+	case COMMUNICATION_SET_PI:
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, p_cof);
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT((recv_msg->payload + 4), i_cof);
+		get_pi_controller()->kp = p_cof;
+		get_pi_controller()->ki = i_cof;
+		LOG_INF("set PI %f %f", (double)p_cof, (double)i_cof);
 		break;
 	default:
 		LOG_DBG("invalid command");
@@ -307,6 +317,12 @@ static int setup_uart(const struct device *uart, void *user_data)
 	return 0;
 }
 
+bool *is_speed_control(void)
+{
+	static bool is_speed = true;
+	return &is_speed;
+}
+
 static void uart_thread(void *arg1, void *arg2, void *arg3)
 {
 	ARG_UNUSED(arg3);
@@ -324,19 +340,16 @@ static void uart_thread(void *arg1, void *arg2, void *arg3)
 
 		rc = message_handler(get_recv_msg()->msg, get_recv_msg()->msg->header.len);
 		if (!rc) {
+			// printk("response %d bytes\n", get_send_msg()->index);
 			atomic_set(&get_send_msg()->done, 1);
 			uart_irq_tx_enable(uart);
 		} else {
 			// release recv message buffer
-			memset(get_recv_msg()->msg, 0, sizeof(struct common_message));
+			// memset(get_recv_msg()->msg, 0, sizeof(struct common_message));
 			atomic_set(&get_recv_msg()->busy, 0);
 			atomic_set(&get_recv_msg()->done, 0);
 			get_recv_msg()->index = 0;
 		}
-
-		// LOG_INF("===== start send message len = %d =====",
-		// get_send_msg()->msg->header.len); LOG_HEXDUMP_INF(get_send_msg()->msg,
-		// get_send_msg()->msg->header.len, "dump test");
 
 	} while (true);
 

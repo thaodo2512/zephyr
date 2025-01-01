@@ -212,6 +212,8 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 		*speed = data->speed;
 	}
 
+	*speed = *speed > 0 ? *speed : -(*speed);
+
 	pre_speed = *speed;
 
 	return 0;
@@ -243,7 +245,6 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 
 	// calculate position
 	data->position += revolution * 360.0f;
-	data->position = (uint32_t)data->position % 360;
 	pre_cnt = cnt;
 
 	return;

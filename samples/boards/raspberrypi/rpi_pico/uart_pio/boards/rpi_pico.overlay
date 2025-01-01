@@ -68,7 +68,7 @@
 	motor_drive0: motor_drive {
 		compatible = "thao_do,motor-drive";
 		status = "okay";
-		pwms = <&pwm 0x6 PWM_USEC(40) PWM_POLARITY_NORMAL>; // PWM_POLARITY_INVERTED
+		pwms = <&pwm 0x6 PWM_USEC(500) PWM_POLARITY_NORMAL>; // PWM_POLARITY_INVERTED
 		label = "MOTOR_DRIVE_CHANNEL_0";
 
 		gpio_ctrl0: gpio_ctrl0 {
@@ -90,14 +90,14 @@
 		pulses-per-revolution = <11>;
 		motor-gear-ratio = <21>;
 		motor-default-speed = <280>;
-		sampling-time = <1>; // ms
+		sampling-time = <10>; // ms
 	};
 
-	hid_dev_0: hid_dev_0 {
-		compatible = "zephyr,hid-device";
-		interface-name = "HID0";
-		in-report-size = <256>;
-		in-polling-period-us = <1000>;
-	};
+	// hid_dev_0: hid_dev_0 {
+	// 	compatible = "zephyr,hid-device";
+	// 	interface-name = "HID0";
+	// 	in-report-size = <256>;
+	// 	in-polling-period-us = <1000>;
+	// };
 };
 

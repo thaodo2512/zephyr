@@ -23,10 +23,12 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define GIT_COMMIT_HASH "Unknown"
 #endif
 
-// #define MOTOR_SAMPLING_TIME_ZEPHYR_MS K_MSEC(MOTOR_SAMPLING_TIME_MS)
-#define MOTOR_SAMPLING_TIME_ZEPHYR_MS K_SECONDS(10)
+#define MOTOR_SAMPLING_TIME_ZEPHYR_MS K_MSEC(MOTOR_SAMPLING_TIME_MS)
 
 static void timer_expiry_fnc(struct k_timer *timer);
+static void speed_control(const struct device *drive, const struct device *encoder,
+			  float set_point);
+
 K_TIMER_DEFINE(pid_timer, timer_expiry_fnc, NULL);
 K_SEM_DEFINE(pid_sem, 0, 1);
 static float set_point = 0.0f;
@@ -67,16 +69,14 @@ pi_controller *get_pi_controller(void)
 int main(void)
 {
 	LOG_INF("Booting to raspberry pi pico - bai tap lon 2024");
-    LOG_INF("Build time: %s", BUILD_TIME);
-    LOG_INF("Commit hash: %s", GIT_COMMIT_HASH);
+	LOG_INF("Build time: %s", BUILD_TIME);
+	LOG_INF("Commit hash: %s", GIT_COMMIT_HASH);
 
 	int rc;
 	const struct device *motor_drive = DEVICE_DT_GET(DT_NODELABEL(motor_drive0));
 	const struct device *encoder = DEVICE_DT_GET(DT_NODELABEL(motor_drive_encoder0));
 	struct motor_driver_api *motor_driver_api;
 	struct motor_drive_encoder_api *encoder_api;
-	float volt = 100.0f;
-	float speed = 0.0f;
 
 	if (!device_is_ready(motor_drive)) {
 		LOG_ERR("Motor drive device %s is not ready", motor_drive->name);
@@ -102,9 +102,9 @@ int main(void)
 		LOG_ERR("failed to turn off motor - rc = %d", rc);
 	}
 
-	k_timer_start(&get_signal_timer, K_SECONDS(2), K_SECONDS(2));
+	// k_timer_start(&get_signal_timer, K_SECONDS(2), K_SECONDS(2));
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
-	pi_init(get_pi_controller(), 2, 0.1, MOTOR_SAMPLING_TIME_MS);
+	pi_init(get_pi_controller(), 5, 5, MOTOR_SAMPLING_TIME_MS);
 
 	rc = motor_driver_api->on(motor_drive, 0, MOTOR_DIRVE_DIRECTION_FORWARD);
 	if (rc) {
@@ -113,44 +113,49 @@ int main(void)
 	}
 
 	// speed range 70 rpm to 200 rpm
+	*get_set_point() = 200.0f;
 
 	while (1) {
 		k_sem_take(&pid_sem, K_FOREVER);
 
-		rc = encoder_api->get_speed(encoder, &speed);
-		if (rc) {
-			LOG_ERR("failed to get speed - rc = %d", rc);
-			continue;
-		}
-
-		// volt = pi_cal(&controller, 70.0f, speed);
-		// volt = 2.0f;
-		volt -= 5;
-		if (volt < 60.0f) {
-			volt = 100.0f;
-		}
-
-		// static int test = 0;
-
-		// if (test) {
-		// 	rc = motor_driver_api->set_voltage(motor_drive, 0, 2);
-		// 	if (rc) {
-		// 		LOG_ERR("failed to set speed - rc = %d", rc);
-		// 	}
-		// } else {
-		// 	rc = motor_driver_api->set_voltage(motor_drive, 0, 12);
-		// 	if (rc) {
-		// 		LOG_ERR("failed to set speed - rc = %d", rc);
-		// 	}
-		// }
-
-		// test = !test;
-		printk("set voltage: %f\n", (double)volt);
-		rc = motor_driver_api->set_voltage(motor_drive, 0, volt);
-		if (rc) {
-			LOG_ERR("failed to set speed - rc = %d", rc);
+		if (is_speed_control()) {
+			speed_control(motor_drive, encoder, *get_set_point());
+		} else {
+			// position control
 		}
 	}
 
 	return 0;
+}
+
+static void speed_control(const struct device *drive, const struct device *encoder, float set_point)
+{
+	const struct motor_drive_encoder_api *encoder_api = encoder->api;
+	const struct motor_driver_api *motor_driver_api = drive->api;
+	int rc;
+	float speed = 0.0f;
+	float output = 0.0f;
+
+	rc = encoder_api->get_speed(encoder, &speed);
+	if (rc) {
+		LOG_ERR("failed to get speed - rc = %d", rc);
+		return;
+	}
+
+	output = pi_cal(get_pi_controller(), set_point, speed);
+	rc = motor_driver_api->set_voltage(drive, 0, output);
+	if (rc) {
+		LOG_ERR("failed to set speed - rc = %d", rc);
+	}
+
+	return;
+}
+
+static void pos_control(const struct device *drive, const struct device *encoder, float set_point)
+{
+	ARG_UNUSED(drive);
+	ARG_UNUSED(encoder);
+	ARG_UNUSED(set_point);
+
+	return;
 }
