@@ -60,7 +60,7 @@ static int motor_get_inf(const struct device *dev, uint32_t motor, const struct 
 static int motor_set_voltage(const struct device *dev, uint32_t motor, float value)
 {
 	// convert value (0 volt - 12 volt) to percent (0 - 100)
-	float percent = (value / 12.0f) * 100.0f;
+	float percent = (value / 100.0f) * 100.0f;
 	if (percent > 100.0f || percent < 0.0f) {
 		LOG_ERR("invalid voltage value %f", (double)value);
 		return -EINVAL;

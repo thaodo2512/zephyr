@@ -13,7 +13,7 @@
 #define COMMUNICATION_MAX_SIZE 32
 #define COMMUNICATION_VERSION 1
 
-#define MOTOR_SAMPLING_TIME_MS 10
+#define MOTOR_SAMPLING_TIME_MS 20
 
 enum communication_cmd {
     COMMUNICATION_GET_SPEED = 0,
@@ -23,6 +23,7 @@ enum communication_cmd {
     COMMUNICATION_SET_P = 4,
     COMMUNICATION_SET_I = 5,
     COMMUNICATION_SET_D = 6,
+    COMMUNICATION_GET_SPEED_POSITION = 7,
 };
 
 struct common_header {
@@ -50,6 +51,7 @@ int communication_init(void);
 typedef struct {
     float kp;         // Proportional gain
     float ki;         // Integral gain
+    float kd;         // Derivative gain
     float ts;         // Sampling time
     float prev_error;  // Error at k-1
     float prev_output; // Control output at k-1
@@ -62,6 +64,8 @@ void pi_init(pi_controller *pi, float kp, float ki, float ts);
 float pi_cal(pi_controller *pi, float setpoint, float measuredValue);
 
 float *get_set_point(void);
+
+pi_controller *get_pi_controller(void);
 
 const struct device *get_encoder_device(void);
 

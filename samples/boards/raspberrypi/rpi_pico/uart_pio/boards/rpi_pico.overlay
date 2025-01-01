@@ -68,7 +68,7 @@
 	motor_drive0: motor_drive {
 		compatible = "thao_do,motor-drive";
 		status = "okay";
-		pwms = <&pwm 0x6 PWM_MSEC(20) PWM_POLARITY_NORMAL>; // PWM_POLARITY_INVERTED
+		pwms = <&pwm 0x6 PWM_USEC(40) PWM_POLARITY_NORMAL>; // PWM_POLARITY_INVERTED
 		label = "MOTOR_DRIVE_CHANNEL_0";
 
 		gpio_ctrl0: gpio_ctrl0 {
@@ -90,7 +90,7 @@
 		pulses-per-revolution = <11>;
 		motor-gear-ratio = <21>;
 		motor-default-speed = <280>;
-		sampling-time = <10>; // ms
+		sampling-time = <1>; // ms
 	};
 
 	hid_dev_0: hid_dev_0 {

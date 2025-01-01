@@ -21,7 +21,7 @@ void pi_init(pi_controller *pi, float kp, float ki, float ts)
     pi->prev_error = 0.0f;
     pi->prev_output = 0.0f;
 
-    LOG_INF("PI controller initialized with kp = %f, ki = %f, ts = %f", (double)kp, (double)ki, (double)ts);
+    LOG_INF("PI controller initialized with kp = %f, ki = %f, ts = %f ms", (double)kp, (double)ki, (double)ts);
 }
 
 // Update the PI controller using z-transform
@@ -38,8 +38,8 @@ float pi_cal(pi_controller *pi, float setpoint, float measuredValue)
 
     // Control signal
     float output = p_out + i_out;
-    if (output >= 12.0f) {
-        output = 11.9f;
+    if (output >= 100.0f) {
+        output = 100.0f;
     }
 
     if (output <= 0.0f) {

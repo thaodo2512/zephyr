@@ -194,10 +194,10 @@ static int encoder_reset_counter(const struct device *dev)
 	return 0;
 }
 
-static float pre_speed[10] = { 0 };
 static int encoder_get_speed(const struct device *dev, float *speed)
 {
 	struct motor_drive_encoder_data *data;
+	static float pre_speed = 0.0f;
 
 	if (!device_is_ready(dev) || !speed) {
 		LOG_ERR("invalid param for %s", __func__);
@@ -207,19 +207,12 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 	data = dev->data;
 	if (data->speed > ((const struct motor_drive_encoder_config *)dev->config)->motor_default_speed) {
 		// very bad value
-		data->speed = (float)((const struct motor_drive_encoder_config *)dev->config)->motor_default_speed;
+		*speed = pre_speed;
+	} else {
+		*speed = data->speed;
 	}
 
-	pre_speed[0] = data->speed;
-	for (int i = ARRAY_SIZE(pre_speed); i <= 2; i++) {
-		pre_speed[i - 1] = pre_speed[i - 2];
-	}
-
-	*speed = 0.0f;
-	for (int i = 0; i < ARRAY_SIZE(pre_speed); i++) {
-		*speed += pre_speed[i];
-	}
-	*speed /= ARRAY_SIZE(pre_speed);
+	pre_speed = *speed;
 
 	return 0;
 }
@@ -229,11 +222,10 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 	struct motor_drive_encoder_data *data =
 		CONTAINER_OF(dummy, struct motor_drive_encoder_data, timer);
 	const struct motor_drive_encoder_api *api = data->encoder->api;
-	const struct motor_drive_encoder_config *config = data->encoder->config;
 	static int cnt = 0;
 	static int pre_cnt = 0;
 	int rc;
-	float degree;
+	float revolution;
 
 	rc = api->get_count(data->encoder, &cnt);
 	if (rc) {
@@ -241,21 +233,17 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 		return;
 	}
 
-	cnt = cnt % 10000;
-	cnt = cnt < 0 ? -cnt : cnt;
+	// printk("cnt = %d, pre_cnt = %d\n", cnt, pre_cnt);
+	// printk("detal = %d\n", cnt - pre_cnt);
 
-	// overlap case
-	if (cnt < pre_cnt) {
-		degree = (cnt + (10000 - pre_cnt)) * 360.0f / (config->encoder_pulses_per_revolution * config->motor_gear_ratio);
-	} else {
-		degree = (cnt - pre_cnt) * 360.0f / (config->encoder_pulses_per_revolution * config->motor_gear_ratio);
-	}
+	revolution = (cnt - pre_cnt) / (937.2f);
 
 	// calculate speed
-	data->speed = (degree / data->sampling_time) * 166.67f;
+	data->speed = revolution * 60.0f / (data->sampling_time * 0.001f);
 
 	// calculate position
-	data->position += degree;
+	data->position += revolution * 360.0f;
+	data->position = (uint32_t)data->position % 360;
 	pre_cnt = cnt;
 
 	return;
@@ -288,7 +276,7 @@ static int pico_pio_encoder_init(const struct device *dev)
 		LOG_ERR("fail to allocate PIO SM for encoder");
 		return rc;
 	}
-	quadrature_encoder_program_init(pio, sm, channel_a_pin, channel_b_pin, 1000);
+	quadrature_encoder_program_init(pio, sm, channel_a_pin, channel_b_pin, 0);
 	k_timer_init(&data->timer, encoder_timer_handler, NULL);
 	k_timer_start(&data->timer, K_MSEC(data->sampling_time), K_MSEC(data->sampling_time));
 

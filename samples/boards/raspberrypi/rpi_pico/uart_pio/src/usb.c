@@ -26,6 +26,16 @@ LOG_MODULE_REGISTER(communicate);
 		(msg)->header.crc = 0;                                                             \
 	} while (0)
 
+#define COMMUNICATION_CONVERT_FLOAT_TO_BYTE_ARRAY(f, b)                                            \
+	do {                                                                                       \
+		memcpy(b, &f, sizeof(float));                                                      \
+	} while (0)
+
+#define COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(b, f)                                            \
+	do {                                                                                       \
+		memcpy(&(f), (b), sizeof(float));                                                  \
+	} while (0)
+
 struct communicate_context {
 	struct k_thread communicate_thread;
 	K_KERNEL_STACK_MEMBER(stack, 1024);
@@ -95,11 +105,11 @@ static void uart_rx_handler(const struct device *uart_dev, void *user_data)
 	uint8_t data;
 	int rc;
 
-	if (atomic_get(&get_recv_msg()->busy) == 1 || atomic_get(&get_recv_msg()->done) == 1) {
+	if (uart_irq_rx_ready(uart_dev) != 1) {
 		return;
 	}
 
-	if (uart_irq_rx_ready(uart_dev) != 1) {
+	if (atomic_get(&get_recv_msg()->busy) == 1 || atomic_get(&get_recv_msg()->done) == 1) {
 		return;
 	}
 
@@ -108,6 +118,7 @@ static void uart_rx_handler(const struct device *uart_dev, void *user_data)
 		// no more data
 		return;
 	}
+
 	LOG_DBG("uart recv: 0x%02x - index = %d", data, get_recv_msg()->index);
 
 	*((char *)get_recv_msg()->msg + get_recv_msg()->index) = data;
@@ -146,10 +157,11 @@ static void uart_tx_handler(const struct device *uart_dev, void *user_data)
 		return;
 	}
 
-	if (get_send_msg()->index < 0 && atomic_get(&get_send_msg()->done) == 1) {
+	if (get_send_msg()->index <= 0 && atomic_get(&get_send_msg()->done) == 1) {
 		// complete to send message
 		atomic_set(&get_send_msg()->done, 0);
 		atomic_set(&get_send_msg()->busy, 0);
+		// printk("total send %d bytes\n", priv_cnt);
 		priv_cnt = 0;
 
 		// release recv message buffer
@@ -171,8 +183,6 @@ static void uart_tx_handler(const struct device *uart_dev, void *user_data)
 		return;
 	}
 
-	// LOG_INF("send 0x%02x - priv = %d - index = %d", *((char *)get_send_msg()->msg +
-	// priv_cnt), priv_cnt, get_send_msg()->index);
 	priv_cnt++;
 	get_send_msg()->index--;
 }
@@ -197,6 +207,9 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	int rc = -ENODATA;
 	float speed;
 	float position;
+	float p_cof;
+	float i_cof;
+	float d_cof;
 
 	if (recv_msg->header.ver != COMMUNICATION_VERSION) {
 		LOG_ERR("invalid version");
@@ -210,10 +223,13 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	// 	return -EINVAL;
 	// }
 
+	((struct motor_drive_encoder_api *)get_encoder_device()->api)
+		->get_speed(get_encoder_device(), &speed);
+	((struct motor_drive_encoder_api *)get_encoder_device()->api)
+		->get_position(get_encoder_device(), &position);
+
 	switch (recv_msg->header.cmd) {
 	case COMMUNICATION_GET_SPEED:
-		((struct motor_drive_encoder_api *)get_encoder_device()->api)
-			->get_speed(get_encoder_device(), &speed);
 		COMMUNICATION_SET_RESPONSE(get_send_msg()->msg, COMMUNICATION_GET_SPEED,
 					   sizeof(float));
 		memcpy(get_send_msg()->msg->payload, &speed, sizeof(float));
@@ -222,15 +238,11 @@ static int message_handler(struct common_message *msg, uint8_t len)
 		rc = 0;
 		break;
 	case COMMUNICATION_SET_SPEED:
-		LOG_DBG("set speed");
-		speed = (float)(recv_msg->payload[0] | (recv_msg->payload[1] << 8) |
-				(recv_msg->payload[2] << 16) | (recv_msg->payload[3] << 24));
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, speed);
 		*get_set_point() = speed;
-		rc = 0;
+		LOG_INF("set speed %f", (double)speed);
 		break;
 	case COMMNUICATION_GET_POSITION:
-		((struct motor_drive_encoder_api *)get_encoder_device()->api)
-			->get_position(get_encoder_device(), &position);
 		COMMUNICATION_SET_RESPONSE(get_send_msg()->msg, COMMNUICATION_GET_POSITION,
 					   sizeof(float));
 		memcpy(get_send_msg()->msg->payload, &position, sizeof(float));
@@ -239,19 +251,35 @@ static int message_handler(struct common_message *msg, uint8_t len)
 		rc = 0;
 		break;
 	case COMMUNICATION_SET_POSITION:
-		LOG_DBG("set position");
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, position);
+		*get_set_point() = position;
+		LOG_INF("set position %f", (double)position);
 		break;
 	case COMMUNICATION_SET_P:
-		LOG_DBG("set P");
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, p_cof);
+		get_pi_controller()->kp = p_cof;
+		LOG_INF("set P %f", (double)p_cof);
 		break;
 	case COMMUNICATION_SET_I:
-		LOG_DBG("set I");
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, i_cof);
+		get_pi_controller()->ki = i_cof;
+		LOG_INF("set I %f", (double)i_cof);
 		break;
 	case COMMUNICATION_SET_D:
-		LOG_DBG("set D");
+		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, d_cof);
+		get_pi_controller()->kd = d_cof;
+		LOG_INF("set D %f", (double)d_cof);
+		break;
+	case COMMUNICATION_GET_SPEED_POSITION:
+		COMMUNICATION_SET_RESPONSE(get_send_msg()->msg, COMMUNICATION_GET_SPEED_POSITION,
+					   sizeof(float) * 2);
+		memcpy(get_send_msg()->msg->payload, &speed, sizeof(speed));
+		memcpy(get_send_msg()->msg->payload + sizeof(speed), &position, sizeof(position));
+		get_send_msg()->index = 32; // force to send 32 bytes
+		rc = 0;
 		break;
 	default:
-		LOG_ERR("invalid command");
+		LOG_DBG("invalid command");
 		return -EINVAL;
 	}
 
@@ -293,12 +321,17 @@ static void uart_thread(void *arg1, void *arg2, void *arg3)
 
 		// set recv message to busy state
 		atomic_set(&get_recv_msg()->busy, 1);
-		LOG_HEXDUMP_DBG(get_recv_msg()->msg, get_recv_msg()->index, "uart recv msg");
 
 		rc = message_handler(get_recv_msg()->msg, get_recv_msg()->msg->header.len);
 		if (!rc) {
 			atomic_set(&get_send_msg()->done, 1);
 			uart_irq_tx_enable(uart);
+		} else {
+			// release recv message buffer
+			memset(get_recv_msg()->msg, 0, sizeof(struct common_message));
+			atomic_set(&get_recv_msg()->busy, 0);
+			atomic_set(&get_recv_msg()->done, 0);
+			get_recv_msg()->index = 0;
 		}
 
 		// LOG_INF("===== start send message len = %d =====",
