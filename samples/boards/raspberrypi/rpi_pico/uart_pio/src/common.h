@@ -13,7 +13,8 @@
 #define COMMUNICATION_MAX_SIZE 32
 #define COMMUNICATION_VERSION 1
 
-#define MOTOR_SAMPLING_TIME_MS 20
+// good for speed 20ms
+#define MOTOR_SAMPLING_TIME_MS 500
 
 enum communication_cmd {
     COMMUNICATION_GET_SPEED = 0,
@@ -73,5 +74,7 @@ const struct device *get_encoder_device(void);
 bool *is_speed_control(void);
 
 float *get_control_speed(void);
+
+float pi_pos_cal(pi_controller *pi, float setpoint, float measuredValue);
 
 #endif

@@ -256,6 +256,7 @@ static int message_handler(struct common_message *msg, uint8_t len)
 		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, position);
 		*get_set_point() = position;
 		*is_speed_control() = false;
+		((struct motor_drive_encoder_api *)get_encoder_device()->api)->reset_count(get_encoder_device());
 		LOG_INF("set position %f", (double)position);
 		break;
 	case COMMUNICATION_SET_P:

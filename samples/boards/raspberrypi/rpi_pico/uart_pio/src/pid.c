@@ -52,3 +52,31 @@ float pi_cal(pi_controller *pi, float setpoint, float measuredValue)
 
     return output;
 }
+
+float pi_pos_cal(pi_controller *pi, float setpoint, float measuredValue)
+{
+    // Calculate current error
+    float error = setpoint - measuredValue;
+
+    // Proportional term
+    float p_out = pi->kp * error;
+
+    // Integral term (discrete accumulation using z-transform)
+    float i_out = pi->prev_output + pi->ki * (pi->ts * 0.001f) * error; // 0.001f is to convert ms to s
+
+    // Control signal
+    float output = p_out + i_out;
+    if (output >= 100.0f) {
+        output = 100.0f;
+    }
+
+    if (output <= -100.0f) {
+        output = -100.0f;
+    }
+
+    // Update the previous states
+    pi->prev_error = error;
+    pi->prev_output = output;
+
+    return output;
+}

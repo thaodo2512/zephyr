@@ -188,8 +188,13 @@ static int encoder_get_position(const struct device *dev, float *position)
 
 static int encoder_reset_counter(const struct device *dev)
 {
-	ARG_UNUSED(dev);
-	LOG_INF("%s: unsupported", __func__);
+	if (!device_is_ready(dev)) {
+		LOG_ERR("invalid param for %s", __func__);
+		return -EINVAL;
+	}
+
+	struct motor_drive_encoder_data *data = dev->data;
+	data->position = 0.0f;
 
 	return 0;
 }
