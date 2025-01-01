@@ -14,7 +14,7 @@
 #define COMMUNICATION_VERSION 1
 
 // good for speed 20ms
-#define MOTOR_SAMPLING_TIME_MS 500
+#define MOTOR_SAMPLING_TIME_MS 20
 
 enum communication_cmd {
     COMMUNICATION_GET_SPEED = 0,

@@ -34,7 +34,7 @@ K_TIMER_DEFINE(pid_timer, timer_expiry_fnc, NULL);
 K_SEM_DEFINE(pid_sem, 0, 1);
 static float set_point = 0.0f;
 static pi_controller controller;
-static int first_run = 0;
+static int current_direction = 0;
 
 static void timer_expiry_fnc(struct k_timer *timer)
 {
@@ -108,7 +108,7 @@ int main(void)
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
 	pi_init(get_pi_controller(), 0.1f, 0.01f, MOTOR_SAMPLING_TIME_MS);
 
-	rc = motor_driver_api->on(motor_drive, 0, MOTOR_DIRVE_DIRECTION_FORWARD);
+	rc = motor_driver_api->on(motor_drive, 0, current_direction);
 	if (rc) {
 		LOG_ERR("failed to turn on motor - rc = %d", rc);
 		return rc;
@@ -120,8 +120,7 @@ int main(void)
 	while (1) {
 		k_sem_take(&pid_sem, K_FOREVER);
 
-		if (is_speed_control()) {
-			first_run = 0;
+		if (*is_speed_control()) {
 			speed_control(motor_drive, encoder, *get_set_point());
 		} else {
 			// position control
@@ -175,7 +174,8 @@ static void pos_control(const struct device *drive, const struct device *encoder
 	float position = 0.0f;
 	float speed = 0.0f;
 	float output = 0.0f;
-	static int direction = 0;
+	static float pre_err = FLT_MAX;
+	float err = 0;
 
 	rc = encoder_api->get_position(encoder, &position);
 	if (rc) {
@@ -189,33 +189,36 @@ static void pos_control(const struct device *drive, const struct device *encoder
 		return;
 	}
 
-	output = pi_cal(get_pi_controller(), set_point, position);
-	printk("%f\n", (double)output);
+	output = pi_pos_cal(get_pi_controller(), set_point, position);
+	err = set_point - position;
+	err = err > 0 ? err : -err;
 
-	if (output < 0 || (first_run++ < 5000 / MOTOR_SAMPLING_TIME_MS)) {
-		// we need to invert the direction
+	if (err > pre_err) {
+		// if error is increasing, we need to revert the motor direction
 		// slow down the motor
 		rc = motor_driver_api->set_voltage(drive, 0, 0);
 		if (rc) {
 			LOG_ERR("failed to set speed - rc = %d", rc);
 			motor_driver_api->off(drive, 0);
 		}
+
+		if (speed < 5) {
+			// before changing direction, we need to stop the motor
+			current_direction = !current_direction;
+			motor_driver_api->on(drive, 0, current_direction);
+		}
+
 	} else {
 		// speed up the motor
+		output = output > 0 ? output : -output;
 		rc = motor_driver_api->set_voltage(drive, 0, output);
 		if (rc) {
 			LOG_ERR("failed to set speed - rc = %d", rc);
 			motor_driver_api->off(drive, 0);
 		}
-
-		return;
 	}
 
-	if (speed == 0) {
-		// before changing direction, we need to stop the motor
-		direction = !direction;
-		motor_driver_api->on(drive, 0, direction);
-	}
+	pre_err = err;
 
 	return;
 }
