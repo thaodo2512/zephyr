@@ -104,7 +104,7 @@ int main(void)
 
 	// k_timer_start(&get_signal_timer, K_SECONDS(2), K_SECONDS(2));
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
-	pi_init(get_pi_controller(), 5, 5, MOTOR_SAMPLING_TIME_MS);
+	pi_init(get_pi_controller(), 0.1f, 0.01f, MOTOR_SAMPLING_TIME_MS);
 
 	rc = motor_driver_api->on(motor_drive, 0, MOTOR_DIRVE_DIRECTION_FORWARD);
 	if (rc) {
@@ -128,21 +128,33 @@ int main(void)
 	return 0;
 }
 
+float *get_control_speed()
+{
+	static float ava_speed;
+	return &ava_speed;
+}
+
 static void speed_control(const struct device *drive, const struct device *encoder, float set_point)
 {
 	const struct motor_drive_encoder_api *encoder_api = encoder->api;
 	const struct motor_driver_api *motor_driver_api = drive->api;
 	int rc;
-	float speed = 0.0f;
+	static float speed[3];
 	float output = 0.0f;
 
-	rc = encoder_api->get_speed(encoder, &speed);
+	speed[2] = speed[1];
+	speed[1] = speed[0];
+
+	rc = encoder_api->get_speed(encoder, &speed[0]);
 	if (rc) {
 		LOG_ERR("failed to get speed - rc = %d", rc);
 		return;
 	}
 
-	output = pi_cal(get_pi_controller(), set_point, speed);
+	float ava_speed = (speed[0] + speed[1] + speed[2]) / 3;
+	*get_control_speed() = ava_speed;
+
+	output = pi_cal(get_pi_controller(), set_point, ava_speed);
 	rc = motor_driver_api->set_voltage(drive, 0, output);
 	if (rc) {
 		LOG_ERR("failed to set speed - rc = %d", rc);
@@ -156,6 +168,10 @@ static void pos_control(const struct device *drive, const struct device *encoder
 	ARG_UNUSED(drive);
 	ARG_UNUSED(encoder);
 	ARG_UNUSED(set_point);
+
+	const struct motor_drive_encoder_api *encoder_api = encoder->api;
+	const struct motor_driver_api *motor_driver_api = drive->api;
+	int rc;
 
 	return;
 }

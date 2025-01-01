@@ -72,4 +72,6 @@ const struct device *get_encoder_device(void);
 
 bool *is_speed_control(void);
 
+float *get_control_speed(void);
+
 #endif

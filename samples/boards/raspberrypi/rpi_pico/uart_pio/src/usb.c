@@ -223,11 +223,11 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	// 	return -EINVAL;
 	// }
 
-	((struct motor_drive_encoder_api *)get_encoder_device()->api)
-		->get_speed(get_encoder_device(), &speed);
+	// ((struct motor_drive_encoder_api *)get_encoder_device()->api)
+	// 	->get_speed(get_encoder_device(), &speed);
+	speed = *get_control_speed();
 	((struct motor_drive_encoder_api *)get_encoder_device()->api)
 		->get_position(get_encoder_device(), &position);
-	// printk("command %d\n", recv_msg->header.cmd);
 
 	switch (recv_msg->header.cmd) {
 	case COMMUNICATION_GET_SPEED:
