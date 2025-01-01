@@ -285,6 +285,10 @@ static int message_handler(struct common_message *msg, uint8_t len)
 	case COMMUNICATION_SET_PI:
 		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT(recv_msg->payload, p_cof);
 		COMMUNICATION_CONVERT_BYTE_ARRAY_TO_FLOAT((recv_msg->payload + 4), i_cof);
+		if (p_cof < 0 || i_cof < 0 || p_cof > 100 || i_cof > 10) {
+			LOG_ERR("invalid PI value");
+			return -EINVAL;
+		}
 		get_pi_controller()->kp = p_cof;
 		get_pi_controller()->ki = i_cof;
 		LOG_INF("set PI %f %f", (double)p_cof, (double)i_cof);

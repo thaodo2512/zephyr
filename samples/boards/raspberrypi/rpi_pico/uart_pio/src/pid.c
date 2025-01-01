@@ -66,12 +66,12 @@ float pi_pos_cal(pi_controller *pi, float setpoint, float measuredValue)
 
     // Control signal
     float output = p_out + i_out;
-    if (output >= 60.0f) {
-        output = 60.0f;
+    if (output >= 45.0f) {
+        output = 45.0f;
     }
 
-    if (output <= -60.0f) {
-        output = -60.0f;
+    if (output <= -45.0f) {
+        output = -45.0f;
     }
 
     // Update the previous states
