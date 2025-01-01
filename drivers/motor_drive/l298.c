@@ -43,7 +43,7 @@ static __unused int motor_pwm_set_output(const struct device *dev, uint32_t moto
 	const struct pwm_dt_spec *dt_motor = &config->motor;
 
 	// covert percent to pulse_nsec
-	period = (dt_motor->period * percent) / 100;
+	period = (uint32_t)(dt_motor->period * percent / 100.0f);
 
 	return pwm_set_pulse_dt(dt_motor, period);
 }
@@ -61,8 +61,12 @@ static int motor_set_voltage(const struct device *dev, uint32_t motor, float val
 {
 	// convert value (0 volt - 12 volt) to percent (0 - 100)
 	float percent = (value / 12.0f) * 100.0f;
+	if (percent > 100.0f || percent < 0.0f) {
+		LOG_ERR("invalid voltage value %f", (double)value);
+		return -EINVAL;
+	}
 
-	LOG_DBG("set out voltage = %u %%", (uint32_t)percent);
+	LOG_DBG("set out voltage = %f %% and %d %%", (double)percent, (uint32_t)percent);
 
 	return motor_pwm_set_output(dev, motor, (uint32_t)percent);
 }

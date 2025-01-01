@@ -21,4 +21,5 @@ add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 # include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
 zephyr_library_sources(src/usb.c)
+zephyr_library_sources(src/pid.c)
 target_sources(app PRIVATE src/main.c)

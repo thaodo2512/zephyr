@@ -194,6 +194,7 @@ static int encoder_reset_counter(const struct device *dev)
 	return 0;
 }
 
+static float pre_speed[10] = { 0 };
 static int encoder_get_speed(const struct device *dev, float *speed)
 {
 	struct motor_drive_encoder_data *data;
@@ -204,8 +205,21 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 	}
 
 	data = dev->data;
-	*speed = data->speed;
-	asm volatile ("" ::: "memory");
+	if (data->speed > ((const struct motor_drive_encoder_config *)dev->config)->motor_default_speed) {
+		// very bad value
+		data->speed = (float)((const struct motor_drive_encoder_config *)dev->config)->motor_default_speed;
+	}
+
+	pre_speed[0] = data->speed;
+	for (int i = ARRAY_SIZE(pre_speed); i <= 2; i++) {
+		pre_speed[i - 1] = pre_speed[i - 2];
+	}
+
+	*speed = 0.0f;
+	for (int i = 0; i < ARRAY_SIZE(pre_speed); i++) {
+		*speed += pre_speed[i];
+	}
+	*speed /= ARRAY_SIZE(pre_speed);
 
 	return 0;
 }
@@ -227,26 +241,21 @@ static int encoder_get_speed(const struct device *dev, float *speed)
 		return;
 	}
 
-	// convert to positive value
-	if (cnt < 0) {
-		cnt = -cnt;
-	}
+	cnt = cnt % 10000;
+	cnt = cnt < 0 ? -cnt : cnt;
 
 	// overlap case
 	if (cnt < pre_cnt) {
-		degree = (cnt + (INT_MAX - pre_cnt)) * 360.0f / (config->encoder_pulses_per_revolution * config->motor_gear_ratio);
+		degree = (cnt + (10000 - pre_cnt)) * 360.0f / (config->encoder_pulses_per_revolution * config->motor_gear_ratio);
 	} else {
 		degree = (cnt - pre_cnt) * 360.0f / (config->encoder_pulses_per_revolution * config->motor_gear_ratio);
 	}
 
 	// calculate speed
-	data->speed = (degree / data->sampling_time) * 166666.67f;
-	asm volatile ("" ::: "memory");
+	data->speed = (degree / data->sampling_time) * 166.67f;
 
 	// calculate position
-	data->position += ((cnt - pre_cnt) * 360.0f);
-	asm volatile ("" ::: "memory");
-
+	data->position += degree;
 	pre_cnt = cnt;
 
 	return;

@@ -90,7 +90,7 @@
 		pulses-per-revolution = <11>;
 		motor-gear-ratio = <21>;
 		motor-default-speed = <280>;
-		sampling-time = <50>; // ms
+		sampling-time = <10>; // ms
 	};
 
 	hid_dev_0: hid_dev_0 {

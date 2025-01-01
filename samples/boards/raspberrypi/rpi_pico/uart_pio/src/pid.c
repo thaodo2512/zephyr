@@ -6,46 +6,49 @@
 
 #include <stdint.h>
 #include <math.h>
+#include <zephyr/logging/log.h>
 
+#include "common.h"
 
-#define PID_TS 0.0001  // sample time
-#define PID_FILTER_COEFF 0.5 // filter coefficient
-#define PID_K (2/PID_TS)
+LOG_MODULE_REGISTER(pid);
 
-static float error[3] = {0, 0, 0};
-static float control_signal[3] = {0, 0, 0};
-static float a_coeff[3] = {0, 0, 0};
-static float b_coeff[3] = {0, 0, 0};
-
-
-float pid_cal(float kp, float ki, float kd)
+// Initialize the PI controller
+void pi_init(pi_controller *pi, float kp, float ki, float ts)
 {
-    a_coeff[0] = PID_K * PID_K + PID_FILTER_COEFF * PID_K;
-    a_coeff[1] = -2 * PID_K * PID_K;
-    a_coeff[2] = PID_K * PID_K - PID_FILTER_COEFF * PID_K;
+    pi->kp = kp;
+    pi->ki = ki;
+    pi->ts = ts;
+    pi->prev_error = 0.0f;
+    pi->prev_output = 0.0f;
 
-    b_coeff[0] = (PID_K * PID_K  + PID_K * PID_FILTER_COEFF) * kp  + \
-                (PID_K + PID_FILTER_COEFF)* ki + PID_K * PID_K * kd * PID_FILTER_COEFF;
-    b_coeff[1] = 2.0 * ki * PID_FILTER_COEFF - 2 * PID_K * PID_K * kp  - \
-                2 * PID_K * PID_K * kd * PID_FILTER_COEFF;
-    b_coeff[2] = (PID_K * PID_K * kp - PID_K  * ki) + ki * PID_FILTER_COEFF - \
-                PID_K * kp * PID_FILTER_COEFF + PID_K * PID_K * kd * PID_FILTER_COEFF;
-
-    return (-a_coeff[1]/a_coeff[0]) * control_signal[1] - (-a_coeff[2]/a_coeff[0])*control_signal[2] + \
-            (b_coeff[0]/a_coeff[0]) * error[0] + (b_coeff[1]/a_coeff[0]) * error[1] + \
-            (b_coeff[2]/a_coeff[0]) * error[2];
+    LOG_INF("PI controller initialized with kp = %f, ki = %f, ts = %f", (double)kp, (double)ki, (double)ts);
 }
 
-void pid_update_control_signal(float new_control_signal)
+// Update the PI controller using z-transform
+float pi_cal(pi_controller *pi, float setpoint, float measuredValue)
 {
-    control_signal[2] = control_signal[1];
-    control_signal[1] = control_signal[0];
-    control_signal[0] = new_control_signal;
-}
+    // Calculate current error
+    float error = setpoint - measuredValue;
 
-void pid_update_error(float new_error)
-{
-    error[2] = error[1];
-    error[1] = error[0];
-    error[0] = new_error;
+    // Proportional term
+    float p_out = pi->kp * error;
+
+    // Integral term (discrete accumulation using z-transform)
+    float i_out = pi->prev_output + pi->ki * (pi->ts * 0.001f) * error; // 0.001f is to convert ms to s
+
+    // Control signal
+    float output = p_out + i_out;
+    if (output >= 12.0f) {
+        output = 11.9f;
+    }
+
+    if (output <= 0.0f) {
+        output = 0.0f;
+    }
+
+    // Update the previous states
+    pi->prev_error = error;
+    pi->prev_output = output;
+
+    return output;
 }

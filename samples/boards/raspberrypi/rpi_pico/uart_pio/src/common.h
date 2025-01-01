@@ -13,7 +13,7 @@
 #define COMMUNICATION_MAX_SIZE 32
 #define COMMUNICATION_VERSION 1
 
-#define MOTOR_SAMPLING_TIME_MS 1
+#define MOTOR_SAMPLING_TIME_MS 10
 
 enum communication_cmd {
     COMMUNICATION_GET_SPEED = 0,
@@ -47,12 +47,19 @@ struct common_message {
  */
 int communication_init(void);
 
+typedef struct {
+    float kp;         // Proportional gain
+    float ki;         // Integral gain
+    float ts;         // Sampling time
+    float prev_error;  // Error at k-1
+    float prev_output; // Control output at k-1
+} pi_controller;
+
+// Initialize the PI controller
+void pi_init(pi_controller *pi, float kp, float ki, float ts);
+
 /** calulcate pwm output */
-float pid_cal(float kp, float ki, float kd);
-
-void pid_update_control_signal(float new_control_signal);
-
-void pid_update_error(float new_error);
+float pi_cal(pi_controller *pi, float setpoint, float measuredValue);
 
 float *get_set_point(void);
 
