@@ -106,7 +106,9 @@ int main(void)
 
 	// k_timer_start(&get_signal_timer, K_SECONDS(2), K_SECONDS(2));
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
+#if IS_ENABLED(CONFIG_PID_CONTROLLER)
 	pi_init(get_pi_controller(), 0.1f, 0.01f, MOTOR_SAMPLING_TIME_MS);
+#endif
 
 	rc = motor_driver_api->on(motor_drive, 0, current_direction);
 	if (rc) {
@@ -157,7 +159,13 @@ static void speed_control(const struct device *drive, const struct device *encod
 	float ava_speed = (speed[0] + speed[1] + speed[2]) / 3;
 	*get_control_speed() = ava_speed;
 
+#if IS_ENABLED(CONFIG_PID_CONTROLLER)
 	output = pi_cal(get_pi_controller(), set_point, ava_speed);
+#else
+	LOG_ERR("speed control is not supported");
+	return;
+#endif
+
 	rc = motor_driver_api->set_voltage(drive, 0, output);
 	if (rc) {
 		LOG_ERR("failed to set speed - rc = %d", rc);
@@ -189,7 +197,13 @@ static void pos_control(const struct device *drive, const struct device *encoder
 		return;
 	}
 
+#if IS_ENABLED(CONFIG_PID_CONTROLLER)
 	output = pi_pos_cal(get_pi_controller(), set_point, position);
+#else
+	LOG_ERR("pos control is not supported");
+	return;
+#endif
+
 	err = set_point - position;
 	err = err > 0 ? err : -err;
 

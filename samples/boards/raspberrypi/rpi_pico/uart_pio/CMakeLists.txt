@@ -20,6 +20,6 @@ add_definitions(-DBUILD_TIME="${BUILD_TIME}")
 add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
 # include(${ZEPHYR_BASE}/samples/subsys/usb/common/common.cmake)
-zephyr_library_sources(src/usb.c)
-zephyr_library_sources(src/pid.c)
+zephyr_library_sources_ifdef(CONFIG_USB_COMMUNICATION src/usb.c)
+zephyr_library_sources_ifdef(CONFIG_PID_CONTROLLER src/pid.c)
 target_sources(app PRIVATE src/main.c)

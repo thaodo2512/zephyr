@@ -3,3 +3,16 @@
 source "samples/subsys/usb/common/Kconfig.sample_usbd"
 
 source "Kconfig.zephyr"
+
+
+config PID_CONTROLLER
+    bool "ENABLE PID CONTROLLER"
+    default n
+
+config USB_COMMUNICATION
+    bool "ENABLE USB COMMUNICATION"
+    default n
+
+config FUZZY_CONTROLLER
+    bool "ENABLE FUZZY CONTROLLER"
+    default n
