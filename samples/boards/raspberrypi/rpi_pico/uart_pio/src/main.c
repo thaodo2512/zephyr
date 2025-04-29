@@ -24,6 +24,8 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #endif
 
 #define MOTOR_SAMPLING_TIME_ZEPHYR_MS K_MSEC(MOTOR_SAMPLING_TIME_MS)
+#define E_NORMALIZE (float)(1.0f/250.0f)
+#define DELTA_E_NORMALIZE (float)(0.0001f)
 
 static void timer_expiry_fnc(struct k_timer *timer);
 static void speed_control(const struct device *drive, const struct device *encoder,
@@ -35,6 +37,7 @@ K_SEM_DEFINE(pid_sem, 0, 1);
 static float set_point = 0.0f;
 static pi_controller controller;
 static int current_direction = 0;
+static fuzzy_controller f_controller;
 
 static void timer_expiry_fnc(struct k_timer *timer)
 {
@@ -66,6 +69,11 @@ const struct device *get_encoder_device(void)
 pi_controller *get_pi_controller(void)
 {
 	return &controller;
+}
+
+fuzzy_controller *get_fuzzy_controller(void)
+{
+	return &f_controller;
 }
 
 int main(void)
@@ -108,6 +116,8 @@ int main(void)
 	k_timer_start(&pid_timer, MOTOR_SAMPLING_TIME_ZEPHYR_MS, MOTOR_SAMPLING_TIME_ZEPHYR_MS);
 #if IS_ENABLED(CONFIG_PID_CONTROLLER)
 	pi_init(get_pi_controller(), 0.1f, 0.01f, MOTOR_SAMPLING_TIME_MS);
+#elif IS_ENABLED(CONFIG_FUZZY_CONTROLLER)
+	fuzzy_control_init(get_fuzzy_controller(), E_NORMALIZE, DELTA_E_NORMALIZE, MOTOR_SAMPLING_TIME_MS);
 #endif
 
 	rc = motor_driver_api->on(motor_drive, 0, current_direction);
@@ -161,6 +171,8 @@ static void speed_control(const struct device *drive, const struct device *encod
 
 #if IS_ENABLED(CONFIG_PID_CONTROLLER)
 	output = pi_cal(get_pi_controller(), set_point, ava_speed);
+#elif IS_ENABLED(CONFIG_FUZZY_CONTROLLER)
+	output = fuzzy_control(get_fuzzy_controller(), set_point, ava_speed);
 #else
 	LOG_ERR("speed control is not supported");
 	return;
