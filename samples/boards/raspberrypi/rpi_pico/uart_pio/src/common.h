@@ -59,6 +59,15 @@ typedef struct {
     float prev_output; // Control output at k-1
 } pi_controller;
 
+
+typedef struct {
+    int32_t sample_time;
+    float e_cofficient;
+    float de_cofficient;
+    float pre_e;
+    float pre_output;
+} fuzzy_controller;
+
 // Initialize the PI controller
 void pi_init(pi_controller *pi, float kp, float ki, float ts);
 
@@ -76,5 +85,9 @@ bool *is_speed_control(void);
 float *get_control_speed(void);
 
 float pi_pos_cal(pi_controller *pi, float setpoint, float measuredValue);
+
+
+int32_t fuzzy_control_init(fuzzy_controller *fuzzy, float e_coff, float de_coff, int32_t sample_time);
+float fuzzy_control(fuzzy_controller *ctrl, float set_point, float measured_value);
 
 #endif
